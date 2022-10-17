@@ -33,18 +33,16 @@ def _read_exodus(ext_ds, ds_var_names):
     # find max face nodes
     max_face_nodes = 0
     for dim in ext_ds.dims:
-        if "num_nod_per_el" in dim:
-            if ext_ds.dims[dim] > max_face_nodes:
-                max_face_nodes = ext_ds.dims[dim]
+        if "num_nod_per_el" in dim and ext_ds.dims[dim] > max_face_nodes:
+            max_face_nodes = ext_ds.dims[dim]
 
     # create an empty conn array for storing all blk face_nodes_data
     conn = np.empty((0, max_face_nodes))
 
     for key, value in ext_ds.variables.items():
         if key == "qa_records":
-            # TODO: Use the data here for Mesh2 construct, if required.
-            pass
-        elif key == "coord":
+            continue
+        if key == "coord":
             ds.Mesh2.attrs['topology_dimension'] = np.int32(
                 ext_ds.dims['num_dim'])
             ds["Mesh2_node_x"] = xr.DataArray(
@@ -101,15 +99,13 @@ def _read_exodus(ext_ds, ds_var_names):
                         "units": "degree",
                     })
         elif "connect" in key:
-            # check if num face nodes is less than max.
-            if value.data.shape[1] <= max_face_nodes:
-                conn = np.full((value.data.shape[1], max_face_nodes),
-                               0,
-                               dtype=conn.dtype)
-                conn = value.data
-            else:
+            if value.data.shape[1] > max_face_nodes:
                 raise "found face_nodes_dim greater than nMaxMesh2_face_nodes"
 
+            conn = np.full((value.data.shape[1], max_face_nodes),
+                           0,
+                           dtype=conn.dtype)
+            conn = value.data
             # find the elem_type as etype for this element
             for k, v in value.attrs.items():
                 if k == "elem_type":
@@ -164,7 +160,7 @@ def _write_exodus(ds, outfile, ds_var_names):
     date = now.strftime("%Y:%m:%d")
     time = now.strftime("%H:%M:%S")
 
-    title = f"uxarray(" + str(out_filename) + ")" + date + ": " + time
+    title = f"uxarray({str(out_filename)}){date}: {time}"
     fp_word = np.int32(8)
     exo_version = np.float32(5.0)
     api_version = np.float32(5.0)
@@ -248,15 +244,18 @@ def _write_exodus(ds, outfile, ds_var_names):
 
     # break Mesh2_face_nodes into blks
     start = 0
+    # attrib
+    # TODO: fix num attr
+    num_attr = 1
     for blk in range(num_blks):
         blkID = blk + 1
-        str_el_in_blk = "num_el_in_blk" + str(blkID)
-        str_nod_per_el = "num_nod_per_el" + str(blkID)
-        str_att_in_blk = "num_att_in_blk" + str(blkID)
-        str_global_id = "global_id" + str(blkID)
-        str_edge_type = "edge_type" + str(blkID)
-        str_attrib = "attrib" + str(blkID)
-        str_connect = "connect" + str(blkID)
+        str_el_in_blk = f"num_el_in_blk{str(blkID)}"
+        str_nod_per_el = f"num_nod_per_el{str(blkID)}"
+        str_att_in_blk = f"num_att_in_blk{str(blkID)}"
+        str_global_id = f"global_id{str(blkID)}"
+        str_edge_type = f"edge_type{str(blkID)}"
+        str_attrib = f"attrib{str(blkID)}"
+        str_connect = f"connect{str(blkID)}"
 
         # get element type
         num_nodes = len(conn_nofill[start])
@@ -281,9 +280,6 @@ def _write_exodus(ds, outfile, ds_var_names):
         gid = np.arange(start + 1, start + num_faces + 1, 1)
         exo_ds[str_global_id] = xr.DataArray(data=(gid), dims=[str_el_in_blk])
 
-        # attrib
-        # TODO: fix num attr
-        num_attr = 1
         exo_ds[str_attrib] = xr.DataArray(data=xr.DataArray(
             np.zeros((num_faces, num_attr), float)),
                                           dims=[str_el_in_blk, str_att_in_blk])
@@ -333,5 +329,4 @@ def _get_element_type(num_nodes):
         7: "TRI7",
         8: "SHELL8",
     }
-    element_type = ELEMENT_TYPE_DICT[num_nodes]
-    return element_type
+    return ELEMENT_TYPE_DICT[num_nodes]

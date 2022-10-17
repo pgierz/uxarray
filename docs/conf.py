@@ -98,13 +98,13 @@ project = u'uxarray'
 import datetime
 
 current_year = datetime.datetime.now().year
-copyright = u'{}, Uxarray'.format(current_year)
+copyright = f'{current_year}, Uxarray'
 author = u'UXARRAY'
 
 
 # The version info for the project being documented
 def read_version():
-    for line in open('../meta.yaml').readlines():
+    for line in open('../meta.yaml'):
         index = line.find('set version')
         if index > -1:
             return line[index + 15:].replace('\" %}', '').strip()

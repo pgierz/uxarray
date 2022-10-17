@@ -3,16 +3,14 @@ from pathlib import Path
 
 from setuptools import find_packages, setup
 
-with open('README.md') as f:
-    long_description = f.read()
-
+long_description = Path('README.md').read_text()
 with open('requirements.txt') as f:
     requirements = f.read().strip().split('\n')
 
 
 #''' moved into function, can now be used other places
 def version():
-    for line in open('meta.yaml').readlines():
+    for line in open('meta.yaml'):
         index = line.find('set version')
         if index > -1:
             return line[index + 15:].replace('\" %}', '').strip()

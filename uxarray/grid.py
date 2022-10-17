@@ -122,7 +122,7 @@ class Grid:
 
         # single face with all nodes
         num_nodes = x_coord.size
-        connectivity = [list(range(0, num_nodes))]
+        connectivity = [list(range(num_nodes))]
 
         self.ds["Mesh2_node_x"] = xr.DataArray(data=xr.DataArray(x_coord),
                                                dims=["nMesh2_node"],
@@ -157,7 +157,7 @@ class Grid:
         elif self.mesh_filetype == "shp":
             self.ds = _read_shpfile(self.filepath)
         else:
-            raise RuntimeError("unknown file format: " + self.mesh_filetype)
+            raise RuntimeError(f"unknown file format: {self.mesh_filetype}")
         dataset.close()
 
     def write(self, outfile, grid_type):
@@ -291,10 +291,9 @@ class Grid:
             0.00211174])
         """
         if self._face_areas is None:
-            # area of a face call needs the units for coordinate conversion if spherical grid is used
-            coords_type = "spherical"
-            if not "degree" in self.Mesh2_node_x.units:
-                coords_type = "cartesian"
+            coords_type = (
+                "spherical" if "degree" in self.Mesh2_node_x.units else "cartesian"
+            )
 
             face_nodes = self.Mesh2_face_nodes.data
             dim = self.Mesh2.attrs['topology_dimension']
@@ -345,11 +344,9 @@ class Grid:
         # Set UGRID standardized attributes
         for key, value in self.ds_var_names.items():
             # Present Data Names
-            if self.ds.data_vars is not None:
-                if value in self.ds.data_vars:
-                    setattr(self, key, self.ds[value])
+            if self.ds.data_vars is not None and value in self.ds.data_vars:
+                setattr(self, key, self.ds[value])
 
             # Present Coordinate Names
-            if self.ds.coords is not None:
-                if value in self.ds.coords:
-                    setattr(self, key, self.ds[value])
+            if self.ds.coords is not None and value in self.ds.coords:
+                setattr(self, key, self.ds[value])

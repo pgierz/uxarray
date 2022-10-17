@@ -51,7 +51,7 @@ def open_dataset(grid_file, *args, **kw):
     mesh_filetype, dataset = parse_grid_type(grid_file, **kw)
 
     # Determine the source data sets regarding args
-    source_datasets = np.array(args) if len(args) > 0 else None
+    source_datasets = np.array(args) if args else None
 
     # Construct the Grid object
     ux_grid = Grid(dataset=dataset,
@@ -61,7 +61,7 @@ def open_dataset(grid_file, *args, **kw):
 
     # If there are additional data file(s) corresponding to this grid, merge them
     # into the dataset
-    if len(args) > 0:
+    if args:
         # load all the datafiles using mfdataset
         all_data = xr.open_mfdataset(args)
         # merge data with grid ds
